@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fahmi App</title>
+
+<style>
+body {
+    background: #101827;
+    color: white;
+    font-family: Arial;
+    text-align: center;
+    padding: 30px 15px;
+}
+
+.container {
+    background: #1e293b;
+    padding: 25px;
+    border-radius: 18px;
+    margin-top: 50px;
+}
+
+input, button {
+    width: 90%;
+    padding: 14px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+    box-sizing: border-box;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h1>FAHMI APP</h1>
+    <p>Aplikasi Android pertamaku</p>
+
+    <input id="nama" placeholder="Masukkan nama kamu">
+
+    <button onclick="sapa()">
+        Mulai
+    </button>
+
+    <h3 id="hasil"></h3>
+</div>
+
+<script>
+function sapa() {
+    let nama = document.getElementById("nama").value;
+
+    document.getElementById("hasil").innerText =
+        "Selamat datang, " + nama + "!";
+}
+</script>
+</body>
+</html>
+
