@@ -1,29 +1,26 @@
-
-name: Build Fahmi App APK
+name: Build APK
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build Android APK
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
+      - name: Build APK
+        uses: ArtemSBulgakov/buildozer-action@v1.2.0
         with:
-          workdir: .
+          command: buildozer android debug
           buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Fahmi-App-APK
-          path: ${{ steps.buildozer.outputs.filename }}
+          name: APK
+          path: bin/*.apk
