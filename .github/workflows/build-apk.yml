@@ -11,14 +11,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 3. Install system dependencies
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -37,38 +40,53 @@ jobs:
             libssl-dev \
             automake
 
+      # 4. Setup Java 17
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
+      # 5. Verify Java
       - name: Verify Java
-        run: java -version
+        run: |
+          java -version
+          javac -version
+          echo "JAVA_HOME=$JAVA_HOME"
 
+      # 6. Setup Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
+      # 7. Install Android SDK packages
       - name: Install Android SDK packages
         run: |
           sdkmanager \
+            "platform-tools" \
             "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "platform-tools"
+            "build-tools;35.0.0"
 
+      # 8. Accept Android SDK licenses
+      - name: Accept Android SDK licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      # 9. Check AIDL
       - name: Check AIDL
         run: |
           AIDL="$ANDROID_HOME/build-tools/35.0.0/aidl"
 
           if [ -x "$AIDL" ]; then
-            echo "AIDL berhasil ditemukan"
+            echo "AIDL found"
+            echo "$AIDL"
           else
-            echo "AIDL tidak ditemukan"
+            echo "AIDL not found"
             exit 1
           fi
 
+      # 10. Configure Buildozer SDK
       - name: Configure Buildozer SDK
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
@@ -83,7 +101,7 @@ jobs:
             -type f -name sdkmanager | head -n 1)
 
           if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager tidak ditemukan"
+            echo "sdkmanager not found"
             exit 1
           fi
 
@@ -91,27 +109,51 @@ jobs:
 
           ln -sf "$SDKMANAGER" "$SDK/tools/bin/sdkmanager"
 
-          echo "SDK: $SDK"
-          echo "sdkmanager: $SDK/tools/bin/sdkmanager"
+          echo "SDK configured"
+          echo "SDKMANAGER=$SDK/tools/bin/sdkmanager"
 
           "$SDK/tools/bin/sdkmanager" --version
 
+      # 11. Install Buildozer
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython
 
-      - name: Check Buildozer
+      # 12. Verify Buildozer
+      - name: Verify Buildozer
         run: |
           buildozer --version
+          python --version
+          cython --version
 
+      # 13. Verify configuration
+      - name: Verify buildozer.spec
+        run: |
+          echo "Checking buildozer.spec"
+
+          grep -E \
+            'android.api|android.minapi|android.ndk|p4a.branch|requirements' \
+            buildozer.spec || true
+
+      # 14. Clean old build
+      - name: Clean Android build
+        run: |
+          buildozer android clean
+
+      # 15. Build APK
       - name: Build APK
         run: |
           buildozer android debug
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
+      # 16. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: crypto-scanner-apk
+          name: FahmiApp-APK
           path: bin/*.apk
           if-no-files-found: error
+          retention-days: 7
