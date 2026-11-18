@@ -64,7 +64,6 @@ jobs:
 
           if [ -x "$AIDL" ]; then
             echo "AIDL berhasil ditemukan"
-            echo "Lokasi: $AIDL"
           else
             echo "AIDL tidak ditemukan"
             exit 1
@@ -72,12 +71,30 @@ jobs:
 
       - name: Configure Buildozer SDK
         run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
           mkdir -p "$HOME/.buildozer/android/platform"
 
-          if [ ! -e "$HOME/.buildozer/android/platform/android-sdk" ]; then
-            ln -s "$ANDROID_HOME" \
-              "$HOME/.buildozer/android/platform/android-sdk"
+          if [ ! -e "$SDK" ]; then
+            ln -s "$ANDROID_HOME" "$SDK"
           fi
+
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" \
+            -type f -name sdkmanager | head -n 1)
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager tidak ditemukan"
+            exit 1
+          fi
+
+          mkdir -p "$SDK/tools/bin"
+
+          ln -sf "$SDKMANAGER" "$SDK/tools/bin/sdkmanager"
+
+          echo "SDK: $SDK"
+          echo "sdkmanager: $SDK/tools/bin/sdkmanager"
+
+          "$SDK/tools/bin/sdkmanager" --version
 
       - name: Install Buildozer
         run: |
