@@ -11,17 +11,14 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1. Mengambil source code repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Mengatur Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3. Memasang dependensi Linux
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -40,26 +37,20 @@ jobs:
             libssl-dev \
             automake
 
-      # 4. Mengatur Java 17
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      # 5. Memastikan Java 17 aktif
       - name: Verify Java
-        run: |
-          java -version
-          echo "JAVA_HOME=$JAVA_HOME"
+        run: java -version
 
-      # 6. Mengatur Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
-      # 7. Memasang Android SDK Build Tools
       - name: Install Android SDK packages
         run: |
           sdkmanager \
@@ -67,13 +58,18 @@ jobs:
             "build-tools;35.0.0" \
             "platform-tools"
 
-      # 8. Memeriksa AIDL
       - name: Check AIDL
         run: |
-          find "$ANDROID_HOME" -name aidl -type f
-          "$ANDROID_HOME/build-tools/35.0.0/aidl" --version
+          AIDL="$ANDROID_HOME/build-tools/35.0.0/aidl"
 
-      # 9. Menghubungkan Android SDK ke Buildozer
+          if [ -x "$AIDL" ]; then
+            echo "AIDL berhasil ditemukan"
+            echo "Lokasi: $AIDL"
+          else
+            echo "AIDL tidak ditemukan"
+            exit 1
+          fi
+
       - name: Configure Buildozer SDK
         run: |
           mkdir -p "$HOME/.buildozer/android/platform"
@@ -83,26 +79,19 @@ jobs:
               "$HOME/.buildozer/android/platform/android-sdk"
           fi
 
-          echo "ANDROID_HOME=$ANDROID_HOME"
-
-      # 10. Memasang Buildozer
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer cython
 
-      # 11. Memeriksa konfigurasi
       - name: Check Buildozer
         run: |
           buildozer --version
-          ls -la
 
-      # 12. Build APK
       - name: Build APK
         run: |
           buildozer android debug
 
-      # 13. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
