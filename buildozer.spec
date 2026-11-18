@@ -22,11 +22,14 @@ android.api = 35
 
 android.minapi = 24
 
-android.archs = arm64-v8a
-
 android.ndk = 28c
 
-p4a.branch = develop
+android.archs = arm64-v8a
+
+# Python-for-Android
+# Repository diatur melalui workflow
+#p4a.branch = develop
+#p4a.source_dir =
 
 
 [buildozer]
