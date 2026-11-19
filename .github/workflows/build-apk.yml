@@ -95,18 +95,39 @@ jobs:
           test -x "$ANDROID_HOME/build-tools/35.0.0/aidl"
 
           echo "Android SDK verified!"
-
+      
       # 9. Configure Buildozer SDK
       - name: Configure Buildozer SDK
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
 
+          # Connect Buildozer SDK to Android SDK
           mkdir -p "$HOME/.buildozer/android/platform"
-
           ln -sfn "$ANDROID_HOME" "$SDK"
 
-          echo "SDK configured:"
-          ls -la "$HOME/.buildozer/android/platform"
+          # Find the actual sdkmanager
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" \
+            -type f -name sdkmanager | head -n 1)
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found"
+            find "$ANDROID_HOME/cmdline-tools" -maxdepth 4 -type f
+            exit 1
+          fi
+
+          echo "Found sdkmanager: $SDKMANAGER"
+
+          # Create legacy path required by Buildozer
+          mkdir -p "$SDK/tools/bin"
+
+          ln -sfn "$SDKMANAGER" "$SDK/tools/bin/sdkmanager"
+
+          # Verify compatibility path
+          test -x "$SDK/tools/bin/sdkmanager"
+
+          "$SDK/tools/bin/sdkmanager" --version
+
+          echo "Buildozer SDK configured successfully!"
 
       # 10. Install Buildozer and Cython
       - name: Install Buildozer
