@@ -3,121 +3,100 @@ name: Build FahmiApp APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
 
     steps:
+      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Verify application files
-        run: |
-          echo "Checking application files..."
-          ls -la
-          test -f main.py
-          test -f scanner_engine.py
-          python -m py_compile main.py scanner_engine.py
-          echo "All application files verified!"
-
-      # 3. Install Linux dependencies
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-
-          sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            openjdk-17-jdk \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo5 \
-            cmake \
-            libffi-dev \
-            libssl-dev \
-            build-essential
-
-      # 4. Setup Java 17
-      - name: Set up Java 17
+      # 3. Setup Java
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      # 5. Verify Java
-      - name: Verify Java
+      # 4. Install Linux dependencies
+      - name: Install system dependencies
         run: |
-          java -version
-          javac -version
-          echo "$JAVA_HOME"
+          sudo apt-get update
 
-      # 6. Setup Android SDK
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            cmake \
+            ccache \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo5 \
+            libffi-dev \
+            libssl-dev \
+            libltdl-dev \
+            libsqlite3-dev \
+            gettext \
+            patch
+
+      # 5. Setup Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: platform-tools
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
 
-      # 7. Install Android SDK packages
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-      # 8. Accept Android licenses
+      # 6. Accept Android licenses
       - name: Accept Android SDK licenses
         run: |
           yes | sdkmanager --licenses || true
 
-      # 9. Verify Android SDK
+      # 7. Verify Android SDK
       - name: Verify Android SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
+          java -version
+          javac -version
 
           test -x "$ANDROID_HOME/build-tools/35.0.0/aidl"
+          test -d "$ANDROID_HOME/platforms/android-35"
 
-          echo "Android SDK verified"
-
-      # 10. Configure Buildozer SDK
+      # 8. Configure Buildozer SDK
       - name: Configure Buildozer SDK
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
 
           mkdir -p "$HOME/.buildozer/android/platform"
 
-          if [ ! -e "$SDK" ]; then
-            ln -s "$ANDROID_HOME" "$SDK"
-          fi
+          ln -sfn "$ANDROID_HOME" "$SDK"
 
-          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" \
-            -type f -name sdkmanager | head -n 1)
+          echo "SDK configured:"
+          ls -la "$HOME/.buildozer/android/platform"
 
-          if [ -z "$SDKMANAGER" ]; then
-            echo "sdkmanager not found"
-            exit 1
-          fi
-
-          mkdir -p "$SDK/tools/bin"
-
-          ln -sf "$SDKMANAGER" "$SDK/tools/bin/sdkmanager"
-
-          "$SDK/tools/bin/sdkmanager" --version
-
-      # 11. Install Buildozer and compatible Cython
+      # 9. Install Buildozer
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -126,14 +105,27 @@ jobs:
             "Cython==0.29.37" \
             "buildozer==1.6.0"
 
-      # 12. Verify Buildozer
-      - name: Verify Buildozer
+      # 10. Verify project files
+      - name: Verify application files
         run: |
-          python --version
-          cython --version
-          buildozer --version
+          echo "===== PROJECT FILES ====="
+          ls -la
 
-      # 13. Verify buildozer.spec
+          test -f main.py
+          test -f scanner_engine.py
+          test -f buildozer.spec
+
+          echo "===== PYTHON FILE CHECK ====="
+
+          find . -maxdepth 2 -type f -name "*.py" -print
+
+          echo "===== PYTHON SYNTAX CHECK ====="
+
+          python -m py_compile main.py scanner_engine.py
+
+          echo "Application files verified!"
+
+      # 11. Verify Buildozer configuration
       - name: Verify buildozer.spec
         run: |
           echo "===== BUILD CONFIGURATION ====="
@@ -142,41 +134,52 @@ jobs:
             '^(requirements|android.api|android.minapi|android.ndk|android.archs|p4a.branch)[[:space:]]*=' \
             buildozer.spec
 
+          grep -q 'requests' buildozer.spec
+          grep -q 'INTERNET' buildozer.spec
+
           grep -Eq \
             '^[[:space:]]*p4a.branch[[:space:]]*=[[:space:]]*develop[[:space:]]*$' \
             buildozer.spec
 
-          echo "Python-for-Android branch: develop"
+          echo "Build configuration verified!"
 
-      # 14. Build APK
-      - name: Build APK
+      # 12. Verify Buildozer installation
+      - name: Verify Buildozer
+        run: |
+          python --version
+          cython --version
+          buildozer --version
+
+      # 13. Build APK
+      - name: Build FahmiApp APK
         run: |
           buildozer -v android debug
         env:
           JAVA_HOME: ${{ env.JAVA_HOME }}
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
-      # 15. Verify APK
+      # 14. Verify APK
       - name: Verify APK
         run: |
-          echo "===== GENERATED APK ====="
+          mkdir -p output
 
-          find bin -type f -name "*.apk" -print
-
-          APK=$(find bin -type f -name "*.apk" | head -n 1)
+          APK=$(find bin -type f -name "*.apk" -print -quit)
 
           if [ -z "$APK" ]; then
-            echo "APK not found"
+            echo "APK not found!"
             exit 1
           fi
 
-          ls -lh "$APK"
+          cp "$APK" output/FahmiTradingApp-v2.0.1.apk
 
-      # 16. Upload APK
-      - name: Upload APK
+          echo "===== APK GENERATED ====="
+          ls -lh output/
+
+      # 15. Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FahmiApp-APK
-          path: bin/*.apk
+          name: FahmiTradingApp-v2.0.1
+          path: output/FahmiTradingApp-v2.0.1.apk
           if-no-files-found: error
           retention-days: 7
