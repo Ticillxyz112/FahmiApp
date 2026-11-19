@@ -1,4 +1,5 @@
-name: Build FahmiApp APK
+
+name: Build Fahmi Trading App APK
 
 on:
   workflow_dispatch:
@@ -15,6 +16,9 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 90
 
+    env:
+      APP_VERSION: "2.0.2"
+
     steps:
       # 1. Checkout repository
       - name: Checkout repository
@@ -26,7 +30,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3. Setup Java
+      # 3. Setup Java 17
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -63,28 +67,36 @@ jobs:
       # 5. Setup Android SDK
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
-        with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
 
-      # 6. Accept Android licenses
+      # 6. Install Android SDK packages
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+      # 7. Accept Android licenses
       - name: Accept Android SDK licenses
         run: |
           yes | sdkmanager --licenses || true
 
-      # 7. Verify Android SDK
+      # 8. Verify Android SDK
       - name: Verify Android SDK
         run: |
+          echo "===== ANDROID SDK ====="
+
           echo "ANDROID_HOME=$ANDROID_HOME"
+
           java -version
           javac -version
 
-          test -x "$ANDROID_HOME/build-tools/35.0.0/aidl"
+          test -d "$ANDROID_HOME/platform-tools"
           test -d "$ANDROID_HOME/platforms/android-35"
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aidl"
 
-      # 8. Configure Buildozer SDK
+          echo "Android SDK verified!"
+
+      # 9. Configure Buildozer SDK
       - name: Configure Buildozer SDK
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
@@ -96,7 +108,7 @@ jobs:
           echo "SDK configured:"
           ls -la "$HOME/.buildozer/android/platform"
 
-      # 9. Install Buildozer
+      # 10. Install Buildozer and Cython
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip setuptools wheel
@@ -105,27 +117,28 @@ jobs:
             "Cython==0.29.37" \
             "buildozer==1.6.0"
 
-      # 10. Verify project files
+      # 11. Verify application files
       - name: Verify application files
         run: |
           echo "===== PROJECT FILES ====="
+
           ls -la
 
           test -f main.py
           test -f scanner_engine.py
           test -f buildozer.spec
 
-          echo "===== PYTHON FILE CHECK ====="
+          echo "===== PYTHON FILES ====="
 
           find . -maxdepth 2 -type f -name "*.py" -print
 
-          echo "===== PYTHON SYNTAX CHECK ====="
+          echo "===== PYTHON SYNTAX ====="
 
           python -m py_compile main.py scanner_engine.py
 
           echo "Application files verified!"
 
-      # 11. Verify Buildozer configuration
+      # 12. Verify Buildozer configuration
       - name: Verify buildozer.spec
         run: |
           echo "===== BUILD CONFIGURATION ====="
@@ -143,22 +156,22 @@ jobs:
 
           echo "Build configuration verified!"
 
-      # 12. Verify Buildozer installation
+      # 13. Verify Buildozer
       - name: Verify Buildozer
         run: |
           python --version
           cython --version
           buildozer --version
 
-      # 13. Build APK
-      - name: Build FahmiApp APK
+      # 14. Build Android APK
+      - name: Build Fahmi Trading App
         run: |
           buildozer -v android debug
         env:
           JAVA_HOME: ${{ env.JAVA_HOME }}
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
-      # 14. Verify APK
+      # 15. Verify APK
       - name: Verify APK
         run: |
           mkdir -p output
@@ -166,20 +179,20 @@ jobs:
           APK=$(find bin -type f -name "*.apk" -print -quit)
 
           if [ -z "$APK" ]; then
-            echo "APK not found!"
+            echo "ERROR: APK not found!"
             exit 1
           fi
 
-          cp "$APK" output/FahmiTradingApp-v2.0.1.apk
+          cp "$APK" "output/FahmiTradingApp-v${APP_VERSION}.apk"
 
           echo "===== APK GENERATED ====="
           ls -lh output/
 
-      # 15. Upload APK
+      # 16. Upload APK
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FahmiTradingApp-v2.0.1
-          path: output/FahmiTradingApp-v2.0.1.apk
+          name: FahmiTradingApp-v2.0.2
+          path: output/FahmiTradingApp-v2.0.2.apk
           if-no-files-found: error
           retention-days: 7
