@@ -1,60 +1,45 @@
-
 [app]
 
 # Application information
 title = Fahmi Trading App
 package.name = fahmiapp
 package.domain = org.fahmi
+version = 2.0.1
 
 # Source directory
 source.dir = .
 
-# Source files included in APK
+# Include Python and application resources
 source.include_exts = py,kv,png,jpg,jpeg,atlas,json,txt
+source.include_patterns = *.py,*.kv
 
-# Application version
-version = 2.0.0
+# Exclude unnecessary directories
+source.exclude_dirs = .git,.github,.buildozer,bin,__pycache__,venv,env
 
 # Python requirements
 requirements = python3,kivy,requests
 
-# Application display
+# Application settings
 orientation = portrait
 fullscreen = 0
 
-# Android permissions
+# Android settings
 android.permissions = INTERNET
-
-# Android SDK configuration
 android.api = 35
 android.minapi = 24
-
-# Android NDK
 android.ndk = 28c
-
-# Android architecture
 android.archs = arm64-v8a
 
-# Python for Android
+# Python-for-Android
 p4a.branch = develop
 
-# Android application settings
+# Storage and compatibility
 android.allow_backup = True
-
-# Android private storage
 android.private_storage = True
-
-# Copy native libraries
 android.copy_libs = 1
-
-# Accept SDK license
 android.accept_sdk_license = True
 
-
+# Build settings
 [buildozer]
-
-# Buildozer logging
 log_level = 2
-
-# Display root warning
 warn_on_root = 1
