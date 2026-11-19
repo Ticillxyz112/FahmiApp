@@ -1,29 +1,31 @@
-
-name: Build APK
+name: Build FahmiApp APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1. Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
+
+      - name: Verify application files
+        run: |
+          echo "Checking application files..."
+          ls -la
+          test -f main.py
+          test -f scanner_engine.py
+          python -m py_compile main.py scanner_engine.py
+          echo "All application files verified!"
 
       # 3. Install Linux dependencies
       - name: Install system dependencies
